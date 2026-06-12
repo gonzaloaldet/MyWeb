@@ -728,7 +728,7 @@ window.addEventListener('scroll', ()=>{
 });
 
 // --- LÓGICA DEL LABORATORIO EFÍMERO ---
-const API_URL = "http://localhost:8000";
+const API_URL = " https://prototype-washcloth-boxing.ngrok-free.dev";
 let labState = { puerto: null, password: null, activo: false };
 
 async function iniciarLaboratorio() {
@@ -742,7 +742,12 @@ async function iniciarLaboratorio() {
   statusText.innerText = "Orquestando contenedor SQL...";
   
   try {
-    const res = await fetch(`${API_URL}/arrancar-entorno?tipo=sql-server`, { method: 'POST' });
+    const res = await fetch(`${API_URL}/arrancar-entorno?tipo=sql-server`, { 
+      method: 'POST',
+      headers: {
+        'ngrok-skip-browser-warning': 'true'
+        }
+      });
     if(!res.ok) throw new Error("Error en el servidor");
     
     const data = await res.json();
@@ -788,7 +793,9 @@ async function ejecutarQuery() {
   try {
     const res = await fetch(`${API_URL}/ejecutar-query`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json',
+               'ngrok-skip-browser-warning': 'true'
+               },
       body: JSON.stringify({
         puerto: labState.puerto,
         password: labState.password,
