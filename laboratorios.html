@@ -85,7 +85,13 @@
   <div class="interfaz" style="display: none;">
     <p style="color:var(--mid); margin-top:20px; font-family:'IBM Plex Mono'; font-size:12px;">Estado: ONLINE | Puerto: <span class="lbl-puerto"></span></p>
     <div id="editor-sql" class="monaco-container"></div>
+    <div style="display: flex; gap: 16px; align-items: center; margin-top: 16px;">
     <button class="btn" onclick="ejecutarSQL()">Ejecutar Query</button>
+    <select id="sql-format-selector" style="background: var(--bg); color: var(--cyan); border: 1px solid var(--line); font-family: 'IBM Plex Mono', monospace; font-size: 12px; padding: 10px; outline: none; text-transform: uppercase;">
+     <option value="tabla">Formato: Tabla</option>
+     <option value="json">Formato: JSON</option>
+    </select>
+    </div>
     <div id="sql-output" class="output-box" style="margin-top:16px; overflow-x: auto;"></div>
   </div>
 </div>
@@ -226,20 +232,67 @@ script.onload = () => {
 // Modificamos las funciones existentes para leer el valor desde Monaco
 
 async function ejecutarSQL() {
-  // Leemos desde editorSQL en lugar del textarea
   const query = editorSQL.getValue(); 
   const out = document.getElementById('sql-output');
-  out.innerText = "Ejecutando...";
+  const formato = document.getElementById('sql-format-selector').value; // Leemos el selector
+  
+  // Limpiamos estilos residuales y mostramos estado de carga
+  out.style.whiteSpace = "normal"; 
+  out.innerHTML = "<span style='color: var(--cyan);'>Ejecutando...</span>";
   
   try {
     const res = await fetch(`${API_URL}/ejecutar-query`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'ngrok-skip-browser-warning': 'true' },
-      body: JSON.stringify({ container_id: state.containerId, puerto: state.puerto, password: state.password, query: query })
+      body: JSON.stringify({ 
+        container_id: state.containerId,
+        puerto: state.puerto, 
+        password: state.password, 
+        query: query 
+      })
     });
+    
     const data = await res.json();
-    out.innerText = JSON.stringify(data.data || data, null, 2);
-  } catch (err) { out.innerText = `Error: ${err.message}`; }
+    
+    // Verificamos si hay filas devueltas (ej. un SELECT)
+    if (data.data && data.data.length > 0) {
+      if (formato === 'tabla') {
+        out.innerHTML = construirTabla(data.data);
+      } else {
+        // Envolvemos el JSON en un <pre> para conservar la indentación
+        out.innerHTML = `<pre style="margin: 0; white-space: pre-wrap; color: var(--text);">${JSON.stringify(data.data, null, 2)}</pre>`;
+      }
+    } else {
+      // Para sentencias INSERT, UPDATE o SELECTS vacíos
+      out.innerHTML = `<span style="color: var(--amber);">${data.mensaje || '0 filas devueltas.'}</span>`;
+    }
+  } catch (err) { 
+    out.innerHTML = `<span style="color: #ff4d4d;">Error: ${err.message}</span>`; 
+  }
+}
+
+// Función auxiliar para construir el HTML de la tabla con tus variables CSS
+function construirTabla(filas) {
+  let html = '<table style="width: 100%; border-collapse: collapse; text-align: left;"><thead><tr>';
+  
+  // Extraemos las columnas de la primera fila
+  const columnas = Object.keys(filas[0]);
+  columnas.forEach(col => { 
+    html += `<th style="border-bottom: 1px solid var(--line); padding: 12px 16px; color: var(--amber); font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em; position: sticky; top: 0; background: #000;">${col}</th>`; 
+  });
+  html += '</tr></thead><tbody>';
+  
+  // Generamos los registros
+  filas.forEach(fila => {
+    html += '<tr style="transition: background 0.2s;" onmouseover="this.style.background=\'rgba(0,229,200,0.05)\'" onmouseout="this.style.background=\'transparent\'">';
+    columnas.forEach(col => { 
+      html += `<td style="border-bottom: 1px solid var(--line); padding: 12px 16px; color: var(--mid); font-size: 13px; white-space: nowrap;">${fila[col] !== null ? fila[col] : '<span style="color:var(--muted)">NULL</span>'}</td>`; 
+    });
+    html += '</tr>';
+  });
+  
+  html += '</tbody></table>';
+  return html;
 }
 
 async function ejecutarPython() {
