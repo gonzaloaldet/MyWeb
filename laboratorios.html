@@ -92,7 +92,7 @@
   <span class="loader"></span>
   <button id="btn-kill-sql" class="btn" onclick="terminarLaboratorio('ws-sql')" style="display:none; background:#ff4d4d;">Terminar Instancia</button>
   <div class="interfaz" style="display: none;">
-    <p style="color:var(--mid); margin-top:20px; font-family:'IBM Plex Mono'; font-size:12px;">Estado: ONLINE | Puerto: <span class="lbl-puerto"></span></p>
+    <p style="color:var(--mid); margin-top:20px; font-family:'IBM Plex Mono'; font-size:12px;">Estado: ONLINE | Puerto: <span class="lbl-puerto"></span> | Expira en: <span class="lbl-timer" style="color: var(--amber);">10:00</span></p>
     <div id="editor-sql" class="monaco-container"></div>
     <div style="display: flex; gap: 16px; align-items: center; margin-top: 16px;">
     <button class="btn" onclick="ejecutarSQL()">Ejecutar Query</button>
@@ -111,7 +111,7 @@
   <button id="btn-kill-sql" class="btn" onclick="terminarLaboratorio('ws-python')" style="display:none; background:#ff4d4d;">Terminar Instancia</button>
   <span class="loader"></span>
   <div class="interfaz" style="display: none;">
-    <p style="color:var(--mid); margin-top:20px; font-family:'IBM Plex Mono'; font-size:12px;">Estado: ONLINE | Runtime: Python 3.11</p>
+    <p style="color:var(--mid); margin-top:20px; font-family:'IBM Plex Mono'; font-size:12px;">Estado: ONLINE | Runtime: Python 3.11 | Expira en: <span class="lbl-timer" style="color: var(--amber);">10:00</span></p>
     <div id="editor-python" class="monaco-container"></div>
     <button class="btn" onclick="ejecutarPython()">Ejecutar Script</button>
     <div id="py-output" class="output-box" style="margin-top:16px;"></div>
@@ -124,7 +124,7 @@
   <span class="loader"></span>
   <button id="btn-kill-sql" class="btn" onclick="terminarLaboratorio('ws-cft')" style="display:none; background:#ff4d4d;">Terminar Instancia</button>
   <div class="interfaz" style="display: none;">
-    <p style="color:var(--mid); margin-top:20px; font-family:'IBM Plex Mono'; font-size:12px;">Estado: ONLINE | Objetivo IP Asignada</p>
+    <p style="color:var(--mid); margin-top:20px; font-family:'IBM Plex Mono'; font-size:12px;">Estado: ONLINE | Objetivo IP Asignada | Expira en: <span class="lbl-timer" style="color: var(--amber);">10:00</span></p>
     <div class="output-box" style="margin-top:16px;">
       <p style="color: var(--cyan);">[+] Objetivo desplegado con éxito.</p>
       <p>[+] URL del Objetivo: <a id="ctf-link" href="#" target="_blank" style="color: var(--amber);">Generando enlace...</a></p>
@@ -140,6 +140,39 @@ let state = { containerId: null, puerto: null, password: null };
 
 let monitorInterval = null; // Guardará el ID del intervalo
 let activeWsId = null;      // Para saber qué interfaz resetear
+
+let countdownInterval = null;
+let tiempoRestante = 600; // 10 minutos en segundos
+
+function formatearTiempo(segundos) {
+  const m = Math.floor(segundos / 60).toString().padStart(2, '0');
+  const s = (segundos % 60).toString().padStart(2, '0');
+  return `${m}:${s}`;
+}
+
+function iniciarReloj() {
+  tiempoRestante = 600; // Reiniciar a 10 min
+  if (countdownInterval) clearInterval(countdownInterval);
+  
+  // Buscar el span del temporizador en el workspace activo
+  const timerDisplay = document.querySelector(`#${activeWsId} .lbl-timer`);
+  if (timerDisplay) timerDisplay.innerText = formatearTiempo(tiempoRestante);
+
+  countdownInterval = setInterval(() => {
+    tiempoRestante--;
+    if (timerDisplay) timerDisplay.innerText = formatearTiempo(tiempoRestante);
+
+    // Si llega a 0, el monitor del backend (Polling) se encargará de mostrar el modal
+    if (tiempoRestante <= 0) {
+      clearInterval(countdownInterval);
+      if (timerDisplay) timerDisplay.innerText = "00:00";
+    }
+  }, 1000);
+}
+
+function detenerReloj() {
+  if (countdownInterval) clearInterval(countdownInterval);
+}
 
 function iniciarMonitor(wsId) {
   activeWsId = wsId;
@@ -157,7 +190,7 @@ function iniciarMonitor(wsId) {
       
       if (data.status === "inactivo") {
         // Si está inactivo, disparamos el cartel y reseteamos
-        mostrarTimeoutModal();
+        mostrarModal();
         forzarResetUI();
       }
     } catch (err) {
@@ -170,8 +203,8 @@ function detenerMonitor() {
   if (monitorInterval) clearInterval(monitorInterval);
 }
 
-function mostrarTimeoutModal() {
-  const modal = document.getElementById('timeout-modal');
+function mostrarModal() {
+  const modal = document.getElementById('-modal');
   modal.style.display = 'flex';
 }
 
@@ -182,6 +215,7 @@ function cerrarModalTimeout() {
 // Función que devuelve la interfaz a su estado original (botón de iniciar visible, etc.)
 function forzarResetUI() {
   detenerMonitor();
+  detenerReloj();
   if (!activeWsId) return;
   
   const ws = document.getElementById(activeWsId);
@@ -251,6 +285,7 @@ async function arrancar(tipo, wsId) {
     // Iniciar el vigilante de inactividad de 10 min
     if (typeof iniciarMonitor === "function") {
         iniciarMonitor(wsId);
+        iniciarReloj();
     }
 
   } catch (err) {
@@ -321,10 +356,11 @@ script.onload = () => {
 // Modificamos las funciones existentes para leer el valor desde Monaco
 
 async function ejecutarSQL() {
+  iniciarReloj();
   const query = editorSQL.getValue(); 
   const out = document.getElementById('sql-output');
   const formato = document.getElementById('sql-format-selector').value; // Leemos el selector
-  
+
   // Limpiamos estilos residuales y mostramos estado de carga
   out.style.whiteSpace = "normal"; 
   out.innerHTML = "<span style='color: var(--cyan);'>Ejecutando...</span>";
@@ -385,6 +421,7 @@ function construirTabla(filas) {
 }
 
 async function ejecutarPython() {
+  iniciarReloj();
   // Leemos desde editorPython en lugar del textarea
   const code = editorPython.getValue();
   const out = document.getElementById('py-output');
@@ -423,6 +460,7 @@ async function terminarLaboratorio(wsId) {
     });
     
     detenerMonitor();
+    detenerReloj();
     
     interfaz.style.display = 'none';
     killBtn.style.display = 'none';
