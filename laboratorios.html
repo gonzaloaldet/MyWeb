@@ -207,43 +207,57 @@ function seleccionarLab(id) {
 
 async function arrancar(tipo, wsId) {
   const ws = document.getElementById(wsId);
-  const btn = ws.querySelector('.btn');
+  
+  // Selectores exactos para evitar conflictos entre los dos botones
+  const btnArrancar = ws.querySelector('.btn:not([id^="btn-kill"])');
+  const btnKill = ws.querySelector('button[id^="btn-kill"]');
   const loader = ws.querySelector('.loader');
   const interfaz = ws.querySelector('.interfaz');
   
-  btn.disabled = true; loader.style.display = 'inline'; loader.innerText = "Provisionando...";
+  btnArrancar.disabled = true; 
+  loader.style.display = 'inline'; 
+  loader.innerText = "Provisionando...";
   
   try {
     const res = await fetch(`${API_URL}/arrancar-entorno?tipo=${tipo}`, { 
         method: 'POST', headers: { 'ngrok-skip-browser-warning': 'true' } 
     });
+    
+    if (!res.ok) throw new Error("Error en la respuesta del servidor");
     const data = await res.json();
     
+    // Guardar estado
     state.containerId = data.container_id;
     state.puerto = data.puerto;
     state.password = data.password;
-    
-    iniciarMonitor(wsId);
-    
+
+    // Actualizar UI general
     loader.innerText = "[✓] Desplegado";
     interfaz.style.display = 'block';
 
+    // --- EL TRUCO VISUAL: OCULTAR ARRANCAR Y MOSTRAR TERMINAR ---
+    btnArrancar.style.display = 'none';
+    if (btnKill) btnKill.style.display = 'inline-block';
+
+    // Llenar datos específicos según el entorno
     if(tipo === 'sql-server') {
         ws.querySelector('.lbl-puerto').innerText = data.puerto;
     }
     if(tipo === 'ctf-facil') {
-        // En Ngrok la URL mapeada es la de FastAPI, para acceder al contenedor web desde afuera
-        // necesitamos devolver un mensaje con el puerto local para usarlo si estamos en localhost
-        // O idealmente mapear el puerto 80 del container en el backend. 
-        // Por ahora, indicamos el puerto mapeado en el servidor host.
-        ws.querySelector('#ctf-link').href = `http://TU_IP_PUBLICA_O_LOCAL:${data.puerto}`;
-        ws.querySelector('#ctf-link').innerText = `http://<IP_Servidor>:${data.puerto}`;
+        ws.querySelector('#ctf-link').href = `http://localhost:${data.puerto}`;
+        ws.querySelector('#ctf-link').innerText = `http://localhost:${data.puerto}`;
+    }
+    
+    // Iniciar el vigilante de inactividad de 10 min
+    if (typeof iniciarMonitor === "function") {
+        iniciarMonitor(wsId);
     }
 
   } catch (err) {
     loader.innerText = "Error al provisionar.";
+    console.error(err);
   } finally {
-    btn.disabled = false;
+    btnArrancar.disabled = false;
   }
 }
 
