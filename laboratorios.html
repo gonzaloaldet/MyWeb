@@ -235,7 +235,7 @@ async function ejecutarSQL() {
     const res = await fetch(`${API_URL}/ejecutar-query`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'ngrok-skip-browser-warning': 'true' },
-      body: JSON.stringify({ puerto: state.puerto, password: state.password, query: query })
+      body: JSON.stringify({ container_id: state.containerId, puerto: state.puerto, password: state.password, query: query })
     });
     const data = await res.json();
     out.innerText = JSON.stringify(data.data || data, null, 2);
