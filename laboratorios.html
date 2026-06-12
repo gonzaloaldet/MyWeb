@@ -46,6 +46,15 @@
   .output-box { background: #000; border: 1px solid var(--line); padding: 16px; font-family: 'IBM Plex Mono', monospace; font-size: 13px; color: #fff; min-height: 100px; white-space: pre-wrap; }
   
   .loader { color: var(--amber); font-family: 'IBM Plex Mono', monospace; font-size: 12px; margin-left: 15px; display: none; }
+
+  .monaco-container {
+  width: 100%;
+  height: 250px;
+  margin: 16px 0;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  overflow: hidden; /* Para evitar desbordamientos del editor */
+}
 </style>
 </head>
 <body>
@@ -75,7 +84,7 @@
   <span class="loader"></span>
   <div class="interfaz" style="display: none;">
     <p style="color:var(--mid); margin-top:20px; font-family:'IBM Plex Mono'; font-size:12px;">Estado: ONLINE | Puerto: <span class="lbl-puerto"></span></p>
-    <textarea id="sql-query" class="console" placeholder="SELECT * FROM Transacciones;"></textarea>
+    <div id="editor-sql" class="monaco-container"></div>
     <button class="btn" onclick="ejecutarSQL()">Ejecutar Query</button>
     <div id="sql-output" class="output-box" style="margin-top:16px; overflow-x: auto;"></div>
   </div>
@@ -87,7 +96,7 @@
   <span class="loader"></span>
   <div class="interfaz" style="display: none;">
     <p style="color:var(--mid); margin-top:20px; font-family:'IBM Plex Mono'; font-size:12px;">Estado: ONLINE | Runtime: Python 3.11</p>
-    <textarea id="py-code" class="console" placeholder="import sys\nprint('Hola desde el contenedor efímero!')"></textarea>
+    <div id="editor-python" class="monaco-container"></div>
     <button class="btn" onclick="ejecutarPython()">Ejecutar Script</button>
     <div id="py-output" class="output-box" style="margin-top:16px;"></div>
   </div>
@@ -157,8 +166,68 @@ async function arrancar(tipo, wsId) {
   }
 }
 
+// --- CARGA E INICIALIZACIÓN DE MONACO EDITOR ---
+// Agregamos el loader de Monaco dinámicamente
+const script = document.createElement('script');
+script.src = "https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.39.0/min/vs/loader.min.js";
+document.head.appendChild(script);
+
+// Variables globales para acceder a los editores después
+let editorSQL;
+let editorPython;
+
+script.onload = () => {
+  require.config({ paths: { 'vs': 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.39.0/min/vs' }});
+  require(['vs/editor/editor.main'], function() {
+    
+    // 1. Crear un tema que coincida con tu diseño
+    monaco.editor.defineTheme('cyber-theme', {
+      base: 'vs-dark',
+      inherit: true,
+      rules: [
+        { token: 'keyword', foreground: '00e5c8' }, // Cyan para palabras clave
+        { token: 'string', foreground: 'f5a623' },  // Ámbar para strings
+        { token: 'comment', foreground: '5a6a7a' }  // Muted para comentarios
+      ],
+      colors: {
+        'editor.background': '#080b0f', // Tu --bg
+        'editor.lineHighlightBackground': '#0e1318', // Tu --bg2
+        'editorLineNumber.foreground': '#5a6a7a'
+      }
+    });
+
+    // 2. Inicializar Editor SQL
+    editorSQL = monaco.editor.create(document.getElementById('editor-sql'), {
+      value: "SELECT TOP 10 * \nFROM Transacciones \nWHERE Estado = 'Aprobada';",
+      language: 'sql',
+      theme: 'cyber-theme',
+      automaticLayout: true, // Vital para que se redimensione al cambiar de pestañas
+      minimap: { enabled: false },
+      fontSize: 14,
+      fontFamily: "'IBM Plex Mono', monospace",
+      padding: { top: 16 }
+    });
+
+    // 3. Inicializar Editor Python
+    editorPython = monaco.editor.create(document.getElementById('editor-python'), {
+      value: "import sys\nimport requests\n\nprint('¡Entorno efímero listo para extraer datos!')",
+      language: 'python',
+      theme: 'cyber-theme',
+      automaticLayout: true,
+      minimap: { enabled: false },
+      fontSize: 14,
+      fontFamily: "'IBM Plex Mono', monospace",
+      padding: { top: 16 }
+    });
+  });
+};
+
+// --- ACTUALIZACIÓN DE LAS FUNCIONES DE EJECUCIÓN ---
+// Modificamos las funciones existentes para leer el valor desde Monaco
+
 async function ejecutarSQL() {
-  const query = document.getElementById('sql-query').value;
+  // Leemos desde editorSQL en lugar del textarea
+  const query = editorSQL.getValue(); 
   const out = document.getElementById('sql-output');
   out.innerText = "Ejecutando...";
   
@@ -174,7 +243,8 @@ async function ejecutarSQL() {
 }
 
 async function ejecutarPython() {
-  const code = document.getElementById('py-code').value;
+  // Leemos desde editorPython en lugar del textarea
+  const code = editorPython.getValue();
   const out = document.getElementById('py-output');
   out.innerText = "Ejecutando script...";
   
