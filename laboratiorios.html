@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Laboratorios Interactivos — Gonzalo Aldet</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=IBM+Plex+Mono:ital,wght@0,300;0,400;0,500;1,300&family=IBM+Plex+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<!-- Reutilizamos tu paleta de colores y estilos base -->
+<style>
+  :root {
+    --bg: #080b0f; --bg2: #0e1318; --bg3: #131a22; --line: rgba(255,255,255,0.07);
+    --cyan: #00e5c8; --amber: #f5a623; --text: #dde4ee; --muted: #5a6a7a; --mid: #8a9aaa;
+  }
+  body { background: var(--bg); color: var(--text); font-family: 'IBM Plex Sans', sans-serif; padding: 40px; }
+  
+  .nav-back {
+    font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: var(--cyan);
+    text-decoration: none; display: inline-flex; align-items: center; gap: 8px; margin-bottom: 40px;
+  }
+  .nav-back:hover { color: #fff; }
+
+  h1 { font-family: 'Syne', sans-serif; font-size: 42px; margin-bottom: 40px; }
+  
+  /* Selector de Laboratorios */
+  .lab-selector { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-bottom: 40px; }
+  .lab-card {
+    background: var(--bg2); border: 1px solid var(--line); padding: 24px;
+    cursor: pointer; transition: all 0.2s; position: relative; overflow: hidden;
+  }
+  .lab-card:hover, .lab-card.active { border-color: var(--cyan); background: rgba(0,229,200,0.05); }
+  .lab-card h3 { font-family: 'IBM Plex Mono', monospace; font-size: 16px; color: var(--cyan); margin-bottom: 12px; }
+  .lab-card p { font-size: 13px; color: var(--mid); line-height: 1.6; }
+  
+  /* Interfaces Dinámicas */
+  .workspace { background: var(--bg2); border: 1px solid var(--line); padding: 30px; display: none; }
+  .workspace.active { display: block; }
+  
+  textarea.console {
+    width: 100%; height: 200px; background: var(--bg); border: 1px solid var(--line);
+    color: var(--cyan); font-family: 'IBM Plex Mono', monospace; padding: 16px; margin: 16px 0; outline: none;
+  }
+  .btn {
+    font-family: 'IBM Plex Mono', monospace; font-size: 12px; padding: 12px 24px; cursor: pointer;
+    background: var(--cyan); color: var(--bg); border: none; text-transform: uppercase; font-weight: 500;
+  }
+  .output-box { background: #000; border: 1px solid var(--line); padding: 16px; font-family: 'IBM Plex Mono', monospace; font-size: 13px; color: #fff; min-height: 100px; white-space: pre-wrap; }
+  
+  .loader { color: var(--amber); font-family: 'IBM Plex Mono', monospace; font-size: 12px; margin-left: 15px; display: none; }
+</style>
+</head>
+<body>
+
+<a href="index.html" class="nav-back">← Volver al inicio</a>
+
+<h1>Entornos Efímeros</h1>
+
+<div class="lab-selector">
+  <div class="lab-card" onclick="seleccionarLab('sql')">
+    <h3>[01] SQL Data Engine</h3>
+    <p>Instancia MSSQL precargada. Ideal para análisis y pruebas con sentencias complejas.</p>
+  </div>
+  <div class="lab-card" onclick="seleccionarLab('python')">
+    <h3>[02] Python Sandbox</h3>
+    <p>Contenedor efímero de ejecución. Testing seguro de scripts de automatización.</p>
+  </div>
+  <div class="lab-card" onclick="seleccionarLab('ctf')">
+    <h3>[03] CTF Web Target</h3>
+    <p>Máquina vulnerable DVWA. Simulacros de identificación de riesgos y vectores de ataque.</p>
+  </div>
+</div>
+
+<!-- WORKSPACE: SQL -->
+<div id="ws-sql" class="workspace">
+  <button class="btn" onclick="arrancar('sql-server', 'ws-sql')">Levantar Motor SQL</button>
+  <span class="loader"></span>
+  <div class="interfaz" style="display: none;">
+    <p style="color:var(--mid); margin-top:20px; font-family:'IBM Plex Mono'; font-size:12px;">Estado: ONLINE | Puerto: <span class="lbl-puerto"></span></p>
+    <textarea id="sql-query" class="console" placeholder="SELECT * FROM Transacciones;"></textarea>
+    <button class="btn" onclick="ejecutarSQL()">Ejecutar Query</button>
+    <div id="sql-output" class="output-box" style="margin-top:16px; overflow-x: auto;"></div>
+  </div>
+</div>
+
+<!-- WORKSPACE: PYTHON -->
+<div id="ws-python" class="workspace">
+  <button class="btn" onclick="arrancar('python-console', 'ws-python')">Levantar Contenedor Python</button>
+  <span class="loader"></span>
+  <div class="interfaz" style="display: none;">
+    <p style="color:var(--mid); margin-top:20px; font-family:'IBM Plex Mono'; font-size:12px;">Estado: ONLINE | Runtime: Python 3.11</p>
+    <textarea id="py-code" class="console" placeholder="import sys\nprint('Hola desde el contenedor efímero!')"></textarea>
+    <button class="btn" onclick="ejecutarPython()">Ejecutar Script</button>
+    <div id="py-output" class="output-box" style="margin-top:16px;"></div>
+  </div>
+</div>
+
+<!-- WORKSPACE: CTF -->
+<div id="ws-ctf" class="workspace">
+  <button class="btn" onclick="arrancar('ctf-facil', 'ws-ctf')">Desplegar Máquina Vulnerable</button>
+  <span class="loader"></span>
+  <div class="interfaz" style="display: none;">
+    <p style="color:var(--mid); margin-top:20px; font-family:'IBM Plex Mono'; font-size:12px;">Estado: ONLINE | Objetivo IP Asignada</p>
+    <div class="output-box" style="margin-top:16px;">
+      <p style="color: var(--cyan);">[+] Objetivo desplegado con éxito.</p>
+      <p>[+] URL del Objetivo: <a id="ctf-link" href="#" target="_blank" style="color: var(--amber);">Generando enlace...</a></p>
+      <p>[+] Credenciales por defecto: admin / password</p>
+      <p style="color: #ff4d4d; margin-top: 10px;">ADVERTENCIA: Destruir el contenedor al finalizar la práctica.</p>
+    </div>
+  </div>
+</div>
+
+<script>
+const API_URL = "https://TU-URL-DINAMICA.ngrok-free.app"; 
+let state = { containerId: null, puerto: null, password: null };
+
+function seleccionarLab(id) {
+  document.querySelectorAll('.workspace').forEach(el => el.classList.remove('active'));
+  document.getElementById(`ws-${id}`).classList.add('active');
+}
+
+async function arrancar(tipo, wsId) {
+  const ws = document.getElementById(wsId);
+  const btn = ws.querySelector('.btn');
+  const loader = ws.querySelector('.loader');
+  const interfaz = ws.querySelector('.interfaz');
+  
+  btn.disabled = true; loader.style.display = 'inline'; loader.innerText = "Provisionando...";
+  
+  try {
+    const res = await fetch(`${API_URL}/arrancar-entorno?tipo=${tipo}`, { 
+        method: 'POST', headers: { 'ngrok-skip-browser-warning': 'true' } 
+    });
+    const data = await res.json();
+    
+    state.containerId = data.container_id;
+    state.puerto = data.puerto;
+    state.password = data.password;
+
+    loader.innerText = "[✓] Desplegado";
+    interfaz.style.display = 'block';
+
+    if(tipo === 'sql-server') {
+        ws.querySelector('.lbl-puerto').innerText = data.puerto;
+    }
+    if(tipo === 'ctf-facil') {
+        // En Ngrok la URL mapeada es la de FastAPI, para acceder al contenedor web desde afuera
+        // necesitamos devolver un mensaje con el puerto local para usarlo si estamos en localhost
+        // O idealmente mapear el puerto 80 del container en el backend. 
+        // Por ahora, indicamos el puerto mapeado en el servidor host.
+        ws.querySelector('#ctf-link').href = `http://TU_IP_PUBLICA_O_LOCAL:${data.puerto}`;
+        ws.querySelector('#ctf-link').innerText = `http://<IP_Servidor>:${data.puerto}`;
+    }
+
+  } catch (err) {
+    loader.innerText = "Error al provisionar.";
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+async function ejecutarSQL() {
+  const query = document.getElementById('sql-query').value;
+  const out = document.getElementById('sql-output');
+  out.innerText = "Ejecutando...";
+  
+  try {
+    const res = await fetch(`${API_URL}/ejecutar-query`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'ngrok-skip-browser-warning': 'true' },
+      body: JSON.stringify({ puerto: state.puerto, password: state.password, query: query })
+    });
+    const data = await res.json();
+    out.innerText = JSON.stringify(data.data || data, null, 2);
+  } catch (err) { out.innerText = `Error: ${err.message}`; }
+}
+
+async function ejecutarPython() {
+  const code = document.getElementById('py-code').value;
+  const out = document.getElementById('py-output');
+  out.innerText = "Ejecutando script...";
+  
+  try {
+    const res = await fetch(`${API_URL}/ejecutar-python`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'ngrok-skip-browser-warning': 'true' },
+      body: JSON.stringify({ container_id: state.containerId, codigo: code })
+    });
+    const data = await res.json();
+    out.innerText = data.output;
+  } catch (err) { out.innerText = `Error: ${err.message}`; }
+}
+</script>
+</body>
+</html>
