@@ -84,6 +84,22 @@
     <h3>[03] CTF Web Target</h3>
     <p>Máquina vulnerable DVWA. Simulacros de identificación de riesgos y vectores de ataque.</p>
   </div>
+  <div class="lab-card" onclick="seleccionarLab('mongo')">
+    <h3>[04] NoSQL Data Engine</h3>
+    <p>Instancia MongoDB. Perfecta para ingestar y analizar payloads JSON masivos y telemetría no estructurada.</p>
+  </div>
+  <div class="lab-card" onclick="seleccionarLab('juice')">
+    <h3>[05] Juice Shop Target</h3>
+    <p>Aplicación moderna vulnerable (Node.js/Angular). Práctica intensiva de pentesting web.</p>
+  </div>
+  <div class="lab-card" onclick="seleccionarLab('keycloak')">
+    <h3>[06] Keycloak IAM</h3>
+    <p>Servidor de Identidad y Accesos. Auditoría de flujos OAuth 2.0, SAML y manipulación de tokens JWT.</p>
+  </div>
+  <div class="lab-card" onclick="seleccionarLab('jupyter')">
+    <h3>[07] Jupyter Sandbox</h3>
+    <p>Entorno de Data Science interactivo. Notebooks en tiempo real para modelado y extracción de datos.</p>
+  </div>
 </div>
 
 <!-- WORKSPACE: SQL -->
@@ -132,6 +148,66 @@
       <p style="color: #ff4d4d; margin-top: 10px;">ADVERTENCIA: Destruir el contenedor al finalizar la práctica.</p>
     </div>
   </div>
+
+<!-- WORKSPACE: MONGODB -->
+<div id="ws-mongo" class="workspace">
+  <button class="btn" onclick="arrancar('mongodb', 'ws-mongo')">Levantar Motor NoSQL</button>
+  <button id="btn-kill-mongo" class="btn" onclick="terminarLaboratorio('ws-mongo')" style="display:none; background:#ff4d4d;">Terminar Instancia</button>
+  <span class="loader"></span>
+  <div class="interfaz" style="display: none;">
+    <p style="color:var(--mid); margin-top:20px; font-family:'IBM Plex Mono'; font-size:12px;">Estado: ONLINE | Puerto: <span class="lbl-puerto" style="color: var(--cyan);"></span> | Expira en: <span class="lbl-timer" style="color: var(--amber);">10:00</span></p>
+    <div class="output-box" style="margin-top:16px;">
+      <p style="color: var(--cyan);">[+] Base de datos MongoDB activa.</p>
+      <p>[+] Host de conexión: 127.0.0.1</p>
+      <p>[+] Usa MongoDB Compass o Studio 3T conectándote al puerto indicado arriba para inyectar colecciones de datos.</p>
+    </div>
+  </div>
+</div>
+
+<!-- WORKSPACE: JUICE -->
+<div id="ws-juice" class="workspace">
+  <button class="btn" onclick="arrancar('juice-shop', 'ws-juice')">Desplegar Objetivo</button>
+  <button id="btn-kill-juice" class="btn" onclick="terminarLaboratorio('ws-juice')" style="display:none; background:#ff4d4d;">Terminar Instancia</button>
+  <span class="loader"></span>
+  <div class="interfaz" style="display: none;">
+    <p style="color:var(--mid); margin-top:20px; font-family:'IBM Plex Mono'; font-size:12px;">Estado: ONLINE | Expira en: <span class="lbl-timer" style="color: var(--amber);">10:00</span></p>
+    <div class="output-box" style="margin-top:16px;">
+      <p style="color: var(--cyan);">[+] Aplicación vulnerable (OWASP) desplegada.</p>
+      <p>[+] Acceso al Objetivo: <a id="juice-link" href="#" target="_blank" style="color: var(--amber);">Generando enlace...</a></p>
+      <p style="color: #ff4d4d; margin-top: 10px;">Aviso: No exponer este puerto a redes públicas sin aislamiento.</p>
+    </div>
+  </div>
+</div>
+
+<!-- WORKSPACE: KEY-CLOAK -->
+<div id="ws-keycloak" class="workspace">
+  <button class="btn" onclick="arrancar('keycloak', 'ws-keycloak')">Levantar Servidor IAM</button>
+  <button id="btn-kill-keycloak" class="btn" onclick="terminarLaboratorio('ws-keycloak')" style="display:none; background:#ff4d4d;">Terminar Instancia</button>
+  <span class="loader"></span>
+  <div class="interfaz" style="display: none;">
+    <p style="color:var(--mid); margin-top:20px; font-family:'IBM Plex Mono'; font-size:12px;">Estado: ONLINE | Expira en: <span class="lbl-timer" style="color: var(--amber);">10:00</span></p>
+    <div class="output-box" style="margin-top:16px;">
+      <p style="color: var(--cyan);">[+] Identity Access Management listo.</p>
+      <p>[+] Consola de Administración: <a id="keycloak-link" href="#" target="_blank" style="color: var(--amber);">Generando enlace...</a></p>
+      <p>[+] Credenciales globales: admin / admin</p>
+    </div>
+  </div>
+</div>
+
+<!-- WORKSPACE: JUPYTER -->
+<div id="ws-jupyter" class="workspace">
+  <button class="btn" onclick="arrancar('jupyterlab', 'ws-jupyter')">Desplegar Notebooks</button>
+  <button id="btn-kill-jupyter" class="btn" onclick="terminarLaboratorio('ws-jupyter')" style="display:none; background:#ff4d4d;">Terminar Instancia</button>
+  <span class="loader"></span>
+  <div class="interfaz" style="display: none;">
+    <p style="color:var(--mid); margin-top:20px; font-family:'IBM Plex Mono'; font-size:12px;">Estado: ONLINE | Expira en: <span class="lbl-timer" style="color: var(--amber);">10:00</span></p>
+    <div class="output-box" style="margin-top:16px;">
+      <p style="color: var(--cyan);">[+] Entorno Jupyter de Data Science iniciado.</p>
+      <p>[+] Abrir entorno de desarrollo: <a id="jupyter-link" href="#" target="_blank" style="color: var(--amber);">Generando enlace...</a></p>
+      <p>[+] Token inyectado automáticamente en la URL.</p>
+    </div>
+  </div>
+</div>
 </div>
 
 <script>
@@ -281,7 +357,23 @@ async function arrancar(tipo, wsId) {
         ws.querySelector('#ctf-link').href = `http://localhost:${data.puerto}`;
         ws.querySelector('#ctf-link').innerText = `http://localhost:${data.puerto}`;
     }
-    
+    if(tipo === 'mongodb') {
+        ws.querySelector('.lbl-puerto').innerText = data.puerto;
+    }
+    if(tipo === 'juice-shop') {
+        ws.querySelector('#juice-link').href = `http://localhost:${data.puerto}`;
+        ws.querySelector('#juice-link').innerText = `http://localhost:${data.puerto}`;
+    }
+    if(tipo === 'keycloak') {
+        ws.querySelector('#keycloak-link').href = `http://localhost:${data.puerto}/admin`;
+        ws.querySelector('#keycloak-link').innerText = `http://localhost:${data.puerto}/admin`;
+    }
+    if(tipo === 'jupyterlab') {
+        // Jupyter requiere pasar el token por la URL para auto-login
+        const urlJupyter = `http://localhost:${data.puerto}/lab?token=${data.password}`;
+        ws.querySelector('#jupyter-link').href = urlJupyter;
+        ws.querySelector('#jupyter-link').innerText = `http://localhost:${data.puerto}/lab`;
+    }
     // Iniciar el vigilante de inactividad de 10 min
     if (typeof iniciarMonitor === "function") {
         iniciarMonitor(wsId);
