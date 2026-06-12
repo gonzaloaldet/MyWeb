@@ -59,6 +59,14 @@
 </head>
 <body>
 
+<div id="timeout-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(8,11,15,0.9); z-index:9999; justify-content:center; align-items:center; backdrop-filter: blur(5px);">
+  <div style="background:var(--bg2); border:1px solid var(--amber); padding:40px; text-align:center; max-width:450px; box-shadow: 0 0 20px rgba(245, 166, 35, 0.1);">
+    <h3 style="color:var(--amber); font-family:'IBM Plex Mono', monospace; margin-bottom:16px; font-size: 18px;">[!] CONEXIÓN PERDIDA</h3>
+    <p style="color:var(--text); margin-bottom:30px; font-size: 14px; line-height: 1.6;">El entorno ha sido destruido automáticamente por el monitor de seguridad tras 10 minutos de inactividad.</p>
+    <button class="btn" style="background: transparent; border: 1px solid var(--amber); color: var(--amber);" onclick="cerrarModalTimeout()">Entendido</button>
+  </div>
+</div>
+  
 <a href="index.html" class="nav-back">← Volver al inicio</a>
 
 <h1>Entornos Efímeros</h1>
@@ -82,6 +90,7 @@
 <div id="ws-sql" class="workspace">
   <button class="btn" onclick="arrancar('sql-server', 'ws-sql')">Levantar Motor SQL</button>
   <span class="loader"></span>
+  <button id="btn-kill-sql" class="btn" onclick="terminarLaboratorio('ws-sql')" style="display:none; background:#ff4d4d;">Terminar Instancia</button>
   <div class="interfaz" style="display: none;">
     <p style="color:var(--mid); margin-top:20px; font-family:'IBM Plex Mono'; font-size:12px;">Estado: ONLINE | Puerto: <span class="lbl-puerto"></span></p>
     <div id="editor-sql" class="monaco-container"></div>
@@ -99,6 +108,7 @@
 <!-- WORKSPACE: PYTHON -->
 <div id="ws-python" class="workspace">
   <button class="btn" onclick="arrancar('python-console', 'ws-python')">Levantar Contenedor Python</button>
+  <button id="btn-kill-sql" class="btn" onclick="terminarLaboratorio('ws-python')" style="display:none; background:#ff4d4d;">Terminar Instancia</button>
   <span class="loader"></span>
   <div class="interfaz" style="display: none;">
     <p style="color:var(--mid); margin-top:20px; font-family:'IBM Plex Mono'; font-size:12px;">Estado: ONLINE | Runtime: Python 3.11</p>
@@ -112,6 +122,7 @@
 <div id="ws-ctf" class="workspace">
   <button class="btn" onclick="arrancar('ctf-facil', 'ws-ctf')">Desplegar Máquina Vulnerable</button>
   <span class="loader"></span>
+  <button id="btn-kill-sql" class="btn" onclick="terminarLaboratorio('ws-cft')" style="display:none; background:#ff4d4d;">Terminar Instancia</button>
   <div class="interfaz" style="display: none;">
     <p style="color:var(--mid); margin-top:20px; font-family:'IBM Plex Mono'; font-size:12px;">Estado: ONLINE | Objetivo IP Asignada</p>
     <div class="output-box" style="margin-top:16px;">
@@ -126,6 +137,68 @@
 <script>
 const API_URL = "https://prototype-washcloth-boxing.ngrok-free.dev"; 
 let state = { containerId: null, puerto: null, password: null };
+
+let monitorInterval = null; // Guardará el ID del intervalo
+let activeWsId = null;      // Para saber qué interfaz resetear
+
+function iniciarMonitor(wsId) {
+  activeWsId = wsId;
+  if (monitorInterval) clearInterval(monitorInterval);
+  
+  // Pregunta al backend cada 30 segundos (30000 milisegundos)
+  monitorInterval = setInterval(async () => {
+    if (!state.containerId) return;
+    
+    try {
+      const res = await fetch(`${API_URL}/estado-entorno/${state.containerId}`, {
+        headers: { 'ngrok-skip-browser-warning': 'true' }
+      });
+      const data = await res.json();
+      
+      if (data.status === "inactivo") {
+        // Si está inactivo, disparamos el cartel y reseteamos
+        mostrarTimeoutModal();
+        forzarResetUI();
+      }
+    } catch (err) {
+      console.warn("Fallo temporal de red al chequear estado.");
+    }
+  }, 30000);
+}
+
+function detenerMonitor() {
+  if (monitorInterval) clearInterval(monitorInterval);
+}
+
+function mostrarTimeoutModal() {
+  const modal = document.getElementById('timeout-modal');
+  modal.style.display = 'flex';
+}
+
+function cerrarModalTimeout() {
+  document.getElementById('timeout-modal').style.display = 'none';
+}
+
+// Función que devuelve la interfaz a su estado original (botón de iniciar visible, etc.)
+function forzarResetUI() {
+  detenerMonitor();
+  if (!activeWsId) return;
+  
+  const ws = document.getElementById(activeWsId);
+  const killBtn = ws.querySelector('button[id^="btn-kill"]');
+  const arrancarBtn = ws.querySelector('.btn:not([id^="btn-kill"])');
+  const loader = ws.querySelector('.loader');
+  const interfaz = ws.querySelector('.interfaz');
+  
+  interfaz.style.display = 'none';
+  if (killBtn) killBtn.style.display = 'none';
+  if (arrancarBtn) arrancarBtn.style.display = 'inline-block';
+  if (loader) loader.innerText = "";
+  
+  state.containerId = null;
+  state.puerto = null;
+  state.password = null;
+}
 
 function seleccionarLab(id) {
   document.querySelectorAll('.workspace').forEach(el => el.classList.remove('active'));
@@ -149,7 +222,9 @@ async function arrancar(tipo, wsId) {
     state.containerId = data.container_id;
     state.puerto = data.puerto;
     state.password = data.password;
-
+    
+    iniciarMonitor(wsId);
+    
     loader.innerText = "[✓] Desplegado";
     interfaz.style.display = 'block';
 
@@ -311,6 +386,48 @@ async function ejecutarPython() {
     out.innerText = data.output;
   } catch (err) { out.innerText = `Error: ${err.message}`; }
 }
+
+async function terminarLaboratorio(wsId) {
+  // Si no hay un contenedor activo, no hacemos nada
+  if (!state.containerId) return;
+  
+  const ws = document.getElementById(wsId);
+  const killBtn = ws.querySelector('button[id^="btn-kill"]');
+  const arrancarBtn = ws.querySelector('.btn:not([id^="btn-kill"])');
+  const loader = ws.querySelector('.loader');
+  const interfaz = ws.querySelector('.interfaz');
+
+  // Cambiamos el estado visual a "cargando"
+  killBtn.innerText = "Destruyendo...";
+  killBtn.disabled = true;
+
+  try {
+    const res = await fetch(`${API_URL}/detener-entorno`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'ngrok-skip-browser-warning': 'true' },
+      body: JSON.stringify({ container_id: state.containerId })
+    });
+    
+    detenerMonitor();
+    
+    interfaz.style.display = 'none';
+    killBtn.style.display = 'none';
+    killBtn.innerText = "Terminar Instancia";
+    killBtn.disabled = false;
+    
+    arrancarBtn.style.display = 'inline-block';
+    loader.innerText = "[!] Destruido";
+    
+    state.containerId = null;
+    state.puerto = null;
+    state.password = null;
+    
+  } catch (err) {
+    loader.innerText = "Error al destruir la instancia.";
+    killBtn.disabled = false;
+  }
+}
+
 </script>
 </body>
 </html>
