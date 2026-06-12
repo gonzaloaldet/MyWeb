@@ -418,6 +418,7 @@ footer {
 <nav>
   <span class="nav-id">G_ALDET <span class="blink">█</span></span>
   <ul class="nav-links">
+    <li><a href="laboratorios.html">Laboratorios</a></li>
     <li><a href="#experiencia">Experiencia</a></li>
     <li><a href="#habilidades">Habilidades</a></li>
     <li><a href="#formacion">Formación</a></li>
@@ -639,41 +640,6 @@ footer {
     </div>
   </div>
 </section>
-
-<section id="laboratorio">
-  <p class="sl rv">// <span>03.5</span> laboratorio interactivo</p>
-  <h2 class="st rv">Entorno Efímero<br>SQL & Data</h2>
-  
-  <div class="lab-wrapper rv">
-    <div class="lab-header">
-      <div class="lab-info">
-        <span class="lab-status" id="lab-status-dot"></span>
-        <span class="lab-status-text" id="lab-status-text">Motor SQL: Apagado</span>
-      </div>
-      <button id="btn-arrancar" class="btn-p" onclick="iniciarLaboratorio()">Iniciar Contenedor</button>
-    </div>
-
-    <div class="lab-creds" id="lab-creds" style="display: none;">
-      <div class="cred-item"><span>HOST:</span> <span id="lbl-host">---</span></div>
-      <div class="cred-item"><span>PUERTO:</span> <span id="lbl-puerto">---</span></div>
-      <div class="cred-item"><span>USUARIO:</span> sa</div>
-      <div class="cred-item"><span>PASSWORD:</span> <span id="lbl-pass">---</span></div>
-    </div>
-
-    <div class="lab-editor-container">
-      <div class="lab-editor-header">
-        <span>> root@lab:~/# query_runner.sh</span>
-      </div>
-      <textarea id="sql-input" class="lab-console" spellcheck="false" placeholder="Escribe tu consulta aquí... ej: SELECT * FROM Transacciones;" disabled></textarea>
-      <div class="lab-actions">
-        <button id="btn-ejecutar" class="btn-s" onclick="ejecutarQuery()" disabled>Ejecutar Consulta</button>
-      </div>
-    </div>
-
-    <div class="lab-results-container" id="lab-results" style="display: none;">
-      </div>
-  </div>
-</section>
   
 <div id="contacto">
   <div class="ci">
@@ -726,121 +692,6 @@ window.addEventListener('scroll', ()=>{
   nav.style.background = window.scrollY > 60
     ? 'rgba(8,11,15,0.97)' : 'rgba(8,11,15,0.88)';
 });
-
-// --- LÓGICA DEL LABORATORIO EFÍMERO ---
-const API_URL = " https://prototype-washcloth-boxing.ngrok-free.dev";
-let labState = { puerto: null, password: null, activo: false };
-
-async function iniciarLaboratorio() {
-  const btn = document.getElementById('btn-arrancar');
-  const statusText = document.getElementById('lab-status-text');
-  const statusDot = document.getElementById('lab-status-dot');
-  
-  // Estado de carga
-  btn.innerText = "Desplegando...";
-  btn.style.pointerEvents = "none";
-  statusText.innerText = "Orquestando contenedor SQL...";
-  
-  try {
-    const res = await fetch(`${API_URL}/arrancar-entorno?tipo=sql-server`, { 
-      method: 'POST',
-      headers: {
-        'ngrok-skip-browser-warning': 'true'
-        }
-      });
-    if(!res.ok) throw new Error("Error en el servidor");
-    
-    const data = await res.json();
-    
-    // Guardar credenciales en memoria
-    labState.puerto = data.puerto;
-    labState.password = data.password;
-    labState.activo = true;
-    
-    // Actualizar UI
-    document.getElementById('lbl-host').innerText = "127.0.0.1";
-    document.getElementById('lbl-puerto').innerText = data.puerto;
-    document.getElementById('lbl-pass').innerText = data.password;
-    document.getElementById('lab-creds').style.display = "grid";
-    
-    document.getElementById('sql-input').disabled = false;
-    document.getElementById('sql-input').value = "SELECT TOP 5 * FROM Transacciones;";
-    document.getElementById('btn-ejecutar').disabled = false;
-    
-    statusDot.classList.add('active');
-    statusText.innerText = "Motor SQL: ONLINE";
-    btn.innerText = "Contenedor Activo";
-    btn.classList.replace('btn-p', 'btn-s'); // Cambia estilo visual
-
-  } catch (error) {
-    statusText.innerText = "Error de conexión con orquestador";
-    btn.innerText = "Reintentar";
-    btn.style.pointerEvents = "auto";
-    console.error(error);
-  }
-}
-
-async function ejecutarQuery() {
-  if(!labState.activo) return;
-  
-  const query = document.getElementById('sql-input').value;
-  const btn = document.getElementById('btn-ejecutar');
-  const resultsContainer = document.getElementById('lab-results');
-  
-  btn.innerText = "Procesando...";
-  btn.disabled = true;
-  
-  try {
-    const res = await fetch(`${API_URL}/ejecutar-query`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json',
-               'ngrok-skip-browser-warning': 'true'
-               },
-      body: JSON.stringify({
-        puerto: labState.puerto,
-        password: labState.password,
-        query: query
-      })
-    });
-    
-    const data = await res.json();
-    
-    if(res.ok && data.data && data.data.length > 0) {
-      renderizarTabla(data.data, resultsContainer);
-    } else if (res.ok) {
-      resultsContainer.style.display = "block";
-      resultsContainer.innerHTML = `<p style="padding:20px; color:var(--cyan); font-family:'IBM Plex Mono';">Consulta ejecutada. Filas devueltas: 0</p>`;
-    } else {
-      throw new Error(data.detail || "Error en la consulta");
-    }
-  } catch (error) {
-    resultsContainer.style.display = "block";
-    resultsContainer.innerHTML = `<p style="padding:20px; color:#ff4d4d; font-family:'IBM Plex Mono';">ERROR: ${error.message}</p>`;
-  } finally {
-    btn.innerText = "Ejecutar Consulta";
-    btn.disabled = false;
-  }
-}
-
-function renderizarTabla(filas, contenedor) {
-  contenedor.style.display = "block";
-  let html = '<table class="lab-table"><thead><tr>';
-  
-  // Extraer nombres de columnas de la primera fila
-  const columnas = Object.keys(filas[0]);
-  columnas.forEach(col => { html += `<th>${col}</th>`; });
-  html += '</tr></thead><tbody>';
-  
-  // Generar filas
-  filas.forEach(fila => {
-    html += '<tr>';
-    columnas.forEach(col => { html += `<td>${fila[col] !== null ? fila[col] : 'NULL'}</td>`; });
-    html += '</tr>';
-  });
-  
-  html += '</tbody></table>';
-  contenedor.innerHTML = html;
-}
 </script>
 </body>
 </html>
