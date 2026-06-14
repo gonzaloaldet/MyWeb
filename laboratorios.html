@@ -130,6 +130,22 @@
   <div></div>
 </div>
 
+<h2 class="category-title">Escritorios Remotos</h2>
+<div class="lab-selector">
+  <div class="lab-card" onclick="seleccionarLab('ubuntu')">
+    <h3>[08] Ubuntu Desktop</h3>
+    <p>Entorno Linux (XFCE) en el navegador. Navegación segura e investigación aislada.</p>
+  </div>
+  <div class="lab-card" onclick="seleccionarLab('kali')">
+    <h3>[09] Kali Linux</h3>
+    <p>Suite ofensiva completa virtualizada. Ideal para auditorías, OSINT y explotación de CTFs.</p>
+  </div>
+  <div class="lab-card" onclick="seleccionarLab('windows')">
+    <h3>[10] Windows Sandbox</h3>
+    <p>Windows virtualizado vía QEMU. Entorno para análisis de malware o pruebas de caja blanca.</p>
+  </div>
+</div>
+
 <!-- WORKSPACE: SQL -->
 <div id="ws-sql" class="workspace">
   <button class="btn" onclick="arrancar('sql-server', 'ws-sql')">Levantar Motor SQL</button>
@@ -234,6 +250,51 @@
       <p style="color: var(--cyan);">[+] Entorno Jupyter de Data Science iniciado.</p>
       <p>[+] Abrir entorno de desarrollo: <a id="jupyter-link" href="#" target="_blank" style="color: var(--amber);">Generando enlace...</a></p>
       <p>[+] Token inyectado automáticamente en la URL.</p>
+    </div>
+  </div>
+</div>
+
+<!-- WORKSPACE: UBUNTU -->
+<div id="ws-ubuntu" class="workspace">
+  <button class="btn" onclick="arrancar('ubuntu-desktop', 'ws-ubuntu')">Desplegar Ubuntu</button>
+  <button id="btn-kill-ubuntu" class="btn" onclick="terminarLaboratorio('ws-ubuntu')" style="display:none; background:#ff4d4d;">Terminar Instancia</button>
+  <span class="loader"></span>
+  <div class="interfaz" style="display: none;">
+    <p style="color:var(--mid); margin-top:20px; font-family:'IBM Plex Mono'; font-size:12px;">Estado: ONLINE | Expira en: <span class="lbl-timer" style="color: var(--amber);">10:00</span></p>
+    <div class="output-box" style="margin-top:16px;">
+      <p style="color: var(--cyan);">[+] Ubuntu XFCE virtualizado.</p>
+      <p>[+] Credenciales: admin / admin</p>
+      <button class="btn" id="btn-open-ubuntu" style="margin-top: 20px; border: 1px solid var(--amber); background: transparent; color: var(--amber);">Abrir Pop-Up del Escritorio</button>
+    </div>
+  </div>
+</div>
+
+<!-- WORKSPACE: KALI -->
+<div id="ws-kali" class="workspace">
+  <button class="btn" onclick="arrancar('kali-desktop', 'ws-kali')">Desplegar Kali Linux</button>
+  <button id="btn-kill-kali" class="btn" onclick="terminarLaboratorio('ws-kali')" style="display:none; background:#ff4d4d;">Terminar Instancia</button>
+  <span class="loader"></span>
+  <div class="interfaz" style="display: none;">
+    <p style="color:var(--mid); margin-top:20px; font-family:'IBM Plex Mono'; font-size:12px;">Estado: ONLINE | Expira en: <span class="lbl-timer" style="color: var(--amber);">10:00</span></p>
+    <div class="output-box" style="margin-top:16px;">
+      <p style="color: var(--cyan);">[+] Arsenal de pentesting en línea.</p>
+      <p>[+] Credenciales: admin / admin</p>
+      <button class="btn" id="btn-open-kali" style="margin-top: 20px; border: 1px solid var(--amber); background: transparent; color: var(--amber);">Abrir Pop-Up del Escritorio</button>
+    </div>
+  </div>
+</div>
+
+<!-- WORKSPACE: WINDOWS -->
+<div id="ws-windows" class="workspace">
+  <button class="btn" onclick="arrancar('windows-desktop', 'ws-windows')">Desplegar Windows</button>
+  <button id="btn-kill-windows" class="btn" onclick="terminarLaboratorio('ws-windows')" style="display:none; background:#ff4d4d;">Terminar Instancia</button>
+  <span class="loader"></span>
+  <div class="interfaz" style="display: none;">
+    <p style="color:var(--mid); margin-top:20px; font-family:'IBM Plex Mono'; font-size:12px;">Estado: ONLINE | Expira en: <span class="lbl-timer" style="color: var(--amber);">10:00</span></p>
+    <div class="output-box" style="margin-top:16px;">
+      <p style="color: var(--cyan);">[+] Máquina Virtual Windows aprovisionada.</p>
+      <p>[+] Nota: El inicio puede demorar mientras QEMU carga el Kernel.</p>
+      <button class="btn" id="btn-open-windows" style="margin-top: 20px; border: 1px solid var(--amber); background: transparent; color: var(--amber);">Abrir Pop-Up del Escritorio</button>
     </div>
   </div>
 </div>
@@ -406,6 +467,16 @@ async function arrancar(tipo, wsId) {
     if (typeof iniciarMonitor === "function") {
         iniciarMonitor(wsId);
         iniciarReloj();
+    }
+    const escritorios = ['ubuntu-desktop', 'kali-desktop', 'windows-desktop'];
+    if(escritorios.includes(tipo)) {
+        const urlDesktop = `http://localhost:${data.puerto}`;
+        // Extraemos el prefijo (ubuntu, kali o windows)
+        const idPrefijo = tipo.split('-')[0]; 
+        const btnOpen = ws.querySelector(`#btn-open-${idPrefijo}`);
+        if(btnOpen) {
+            btnOpen.onclick = () => window.open(urlDesktop, 'RemoteDesktop', 'width=1280,height=720,resizable,scrollbars=yes');
+        }
     }
 
   } catch (err) {
