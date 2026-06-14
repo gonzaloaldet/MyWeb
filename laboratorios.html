@@ -138,7 +138,7 @@
 <div id="ws-ctf" class="workspace">
   <button class="btn" onclick="arrancar('ctf-facil', 'ws-ctf')">Desplegar Máquina Vulnerable</button>
   <span class="loader"></span>
-  <button id="btn-kill-sql" class="btn" onclick="terminarLaboratorio('ws-cft')" style="display:none; background:#ff4d4d;">Terminar Instancia</button>
+  <button id="btn-kill-ctf" class="btn" onclick="terminarLaboratorio('ws-ctf')" style="display:none; background:#ff4d4d;">Terminar Instancia</button>
   <div class="interfaz" style="display: none;">
     <p style="color:var(--mid); margin-top:20px; font-family:'IBM Plex Mono'; font-size:12px;">Estado: ONLINE | Objetivo IP Asignada | Expira en: <span class="lbl-timer" style="color: var(--amber);">10:00</span></p>
     <div class="output-box" style="margin-top:16px;">
@@ -147,6 +147,7 @@
       <p>[+] Credenciales por defecto: admin / password</p>
       <p style="color: #ff4d4d; margin-top: 10px;">ADVERTENCIA: Destruir el contenedor al finalizar la práctica.</p>
     </div>
+  </div>
   </div>
 
 <!-- WORKSPACE: MONGODB -->
@@ -207,7 +208,6 @@
       <p>[+] Token inyectado automáticamente en la URL.</p>
     </div>
   </div>
-</div>
 </div>
 
 <script>
