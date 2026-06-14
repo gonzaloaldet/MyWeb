@@ -55,6 +55,23 @@
   border-radius: 4px;
   overflow: hidden; /* Para evitar desbordamientos del editor */
 }
+  .category-title {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 13px;
+    color: var(--amber);
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    margin: 40px 0 20px 0;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--line);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .category-title::before {
+    content: '>>';
+    color: var(--cyan);
+  }
 </style>
 </head>
 <body>
@@ -71,22 +88,27 @@
 
 <h1>Entornos Efímeros</h1>
 
+<h2 class="category-title">Datos & Analítica</h2>
 <div class="lab-selector">
   <div class="lab-card" onclick="seleccionarLab('sql')">
     <h3>[01] SQL Data Engine</h3>
     <p>Instancia MSSQL precargada. Ideal para análisis y pruebas con sentencias complejas.</p>
   </div>
-  <div class="lab-card" onclick="seleccionarLab('python')">
-    <h3>[02] Python Sandbox</h3>
-    <p>Contenedor efímero de ejecución. Testing seguro de scripts de automatización.</p>
-  </div>
-  <div class="lab-card" onclick="seleccionarLab('ctf')">
-    <h3>[03] CTF Web Target</h3>
-    <p>Máquina vulnerable DVWA. Simulacros de identificación de riesgos y vectores de ataque.</p>
-  </div>
   <div class="lab-card" onclick="seleccionarLab('mongo')">
-    <h3>[04] NoSQL Data Engine</h3>
+    <h3>[02] NoSQL Data Engine</h3>
     <p>Instancia MongoDB. Perfecta para ingestar y analizar payloads JSON masivos y telemetría no estructurada.</p>
+  </div>
+  <div class="lab-card" onclick="seleccionarLab('jupyter')">
+    <h3>[03] Jupyter Sandbox</h3>
+    <p>Entorno de Data Science interactivo. Notebooks en tiempo real para modelado y extracción de datos.</p>
+  </div>
+</div>
+
+<h2 class="category-title">Ciberseguridad & Pentesting</h2>
+<div class="lab-selector">
+  <div class="lab-card" onclick="seleccionarLab('ctf')">
+    <h3>[04] CTF Web Target</h3>
+    <p>Máquina vulnerable DVWA. Simulacros de identificación de riesgos y vectores de ataque.</p>
   </div>
   <div class="lab-card" onclick="seleccionarLab('juice')">
     <h3>[05] Juice Shop Target</h3>
@@ -96,10 +118,16 @@
     <h3>[06] Keycloak IAM</h3>
     <p>Servidor de Identidad y Accesos. Auditoría de flujos OAuth 2.0, SAML y manipulación de tokens JWT.</p>
   </div>
-  <div class="lab-card" onclick="seleccionarLab('jupyter')">
-    <h3>[07] Jupyter Sandbox</h3>
-    <p>Entorno de Data Science interactivo. Notebooks en tiempo real para modelado y extracción de datos.</p>
+</div>
+
+<h2 class="category-title">Desarrollo & Automatización</h2>
+<div class="lab-selector" style="grid-template-columns: repeat(3, 1fr);">
+  <div class="lab-card" onclick="seleccionarLab('python')">
+    <h3>[07] Python Sandbox</h3>
+    <p>Contenedor efímero de ejecución. Testing seguro de scripts de automatización.</p>
   </div>
+  <div></div>
+  <div></div>
 </div>
 
 <!-- WORKSPACE: SQL -->
